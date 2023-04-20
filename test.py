@@ -23,12 +23,12 @@ from network.network import get_model
 
 # Params
 flags = tf.app.flags  # @UndefinedVariable
-flags.DEFINE_string("test_image_folder_path_LR", "data/McM_LR_2/*.png", "Path of the test image folder.")
-flags.DEFINE_string("model_folder_path", "models/jdndmsr+_model.h5", "Path of the trained model folder.")
+flags.DEFINE_string("test_image_folder_path_LR", "/home/tedlasai/DMSR/my_data/*.png", "Path of the test image folder.")
+flags.DEFINE_string("model_folder_path", "/home/tedlasai/DMSR/models/jdndmsr+_model.h5", "Path of the trained model folder.")
 flags.DEFINE_integer("layers", 4, "number of Residual Groups.")
 flags.DEFINE_integer("filters", 64, "number of filters of CNN.")
 flags.DEFINE_integer("batch_size", 16, "Batch size.")
-flags.DEFINE_string("output_folder_path", "test_results/test_McM", "Path to directory to output files.")
+flags.DEFINE_string("output_folder_path", "/home/tedlasai/DMSR/test_results_my_data", "Path to directory to output files.")
 flags.DEFINE_string("pixel_order", "rggb", "pixel oder for Bayer mosaic.")
 flags.DEFINE_float("noise", 10.0, "standard deviation of the Gaussian noise added to the images.")
 flags.DEFINE_integer("scale_factor", 2, "Scale factor 2, 3 or 4.")
@@ -114,6 +114,7 @@ def main(_):
         else:
             image_content = cv2.imread(image_file_path_LR, 1)
             image_height, image_width, _ = image_content.shape
+            print("IMAGE SHAPE", image_content.shape)
         if (image_height %2 !=0):
             image_height = image_height - 1
         if (image_width %2 != 0):
@@ -132,6 +133,7 @@ def main(_):
             predicted_image_content = model.predict([mosaic_image_content_array, noise_array], batch_size)
         else:
             mosaic_image_content = bayer_mosaic(image_content, pixel_order)
+            print("MOSAIIC OUT", mosaic_image_content.shape)
             mosaic_image_input = np.expand_dims(mosaic_image_content, axis = 0)
             mosaic_image_content_array = np.array(mosaic_image_input, dtype=np.float32) / 255
             mosaic_image_content_array = (mosaic_image_content_array - 0.5) / 0.5
@@ -139,6 +141,9 @@ def main(_):
         
         predicted_image_content_HR = predicted_image_content[0]
         predicted_image_content_HR = np.clip(predicted_image_content_HR, -1, 1)
+        print("IM", image_file_path_LR)
+        GT = cv2.imread("/home/tedlasai/DMSR/data/McM_LR_2/crop_2.png", cv2.IMREAD_GRAYSCALE)
+        print("LOSS, ", np.mean(np.linalg.norm(predicted_image_content_HR - GT, axis=2)))
 
         cv2.imwrite(os.path.join(output_folder_path, "%s.png"%(img_name)), ((predicted_image_content_HR*0.5+0.5) * 255).astype(np.uint8))
 
